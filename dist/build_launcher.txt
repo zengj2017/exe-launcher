@@ -1,0 +1,17 @@
+# launcher.exe 编译配置
+# 使用 PyInstaller 将 launcher.py 编译为独立的 EXE 文件
+
+# 安装 PyInstaller
+pip install pyinstaller pycryptodome
+
+# 编译命令
+pyinstaller --onefile --windowed --name=launcher launcher.py
+
+# 参数说明:
+# --onefile: 打包成单个EXE文件
+# --windowed: 不显示控制台窗口(GUI程序)
+# --name=launcher: 输出文件名为 launcher.exe
+# --icon=icon.ico: (可选) 指定图标文件
+
+# 编译后的文件位置:
+# dist/launcher.exe
