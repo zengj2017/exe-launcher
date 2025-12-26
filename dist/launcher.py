@@ -224,15 +224,7 @@ class LauncherGUI:
 
 def main():
     """主函数"""
-    # 检查加密文件是否存在
-    if not os.path.exists(ENCRYPTED_FILE):
-        messagebox.showerror(
-            "错误",
-            f"未找到程序文件: {ENCRYPTED_FILE}\n\n请先运行下载脚本下载程序"
-        )
-        sys.exit(1)
-
-    # 启动GUI
+    # 启动GUI（文件检查移至验证时进行）
     app = LauncherGUI()
     app.run()
 
