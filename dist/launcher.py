@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EXE启动器 - 验证密钥并解密运行
-用途: 验证用户密钥，解密并运行EXE程序
-编译命令: pyinstaller --onefile --noconsole --icon=icon.ico launcher.py
+EXE启动器 V3 - 验证密钥后下载并运行
+流程: 验证密钥 → 下载加密文件 → 解密运行
+编译命令: pyinstaller --onefile --windowed --name=launcher launcher.py
 """
 
 import os
@@ -11,26 +11,47 @@ import sys
 import hashlib
 import subprocess
 import tempfile
+import threading
+import urllib.request
+import urllib.error
 import tkinter as tk
 from tkinter import messagebox, ttk
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
 # ===== 配置区域 =====
-ENCRYPTED_FILE = "program_encrypted.dat"  # 加密的EXE文件名
-MASTER_KEY_HASH = ""  # 主密钥的SHA256哈希值(在打包前填入)
+# 云存储下载链接（替换为您的实际链接）
+DOWNLOAD_URL = "https://your-cloud-storage.com/program_encrypted.dat"
+
+# 本地保存的加密文件名
+ENCRYPTED_FILE = "program_encrypted.dat"
+
+# 有效密钥列表（SHA256哈希值，用于快速验证）
+# 格式: 密钥的SHA256哈希值
+VALID_KEY_HASHES = [
+    # 示例: hashlib.sha256("您的64位密钥".encode()).hexdigest()
+    # "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+]
+
+# 是否启用在线密钥验证（如果为False，则只验证密钥格式和本地哈希列表）
+ENABLE_ONLINE_VALIDATION = False
+ONLINE_VALIDATION_URL = ""  # 在线验证API地址
 # ===== 配置区域结束 =====
+
 
 class LauncherGUI:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("程序启动器")
-        self.window.geometry("500x300")
+        self.window.geometry("550x380")
         self.window.resizable(False, False)
+
+        # 下载状态
+        self.download_cancelled = False
+        self.download_thread = None
 
         # 居中显示
         self.center_window()
-
         self.setup_ui()
 
     def center_window(self):
@@ -64,14 +85,37 @@ class LauncherGUI:
         self.key_entry = tk.Entry(
             self.window,
             font=("Courier", 11),
-            width=50,
+            width=55,
             justify="center"
         )
         self.key_entry.pack(pady=10)
         self.key_entry.focus()
 
         # 绑定回车键
-        self.key_entry.bind("<Return>", lambda e: self.verify_and_launch())
+        self.key_entry.bind("<Return>", lambda e: self.verify_and_download())
+
+        # 进度条框架
+        progress_frame = tk.Frame(self.window)
+        progress_frame.pack(pady=15, fill=tk.X, padx=40)
+
+        # 进度条
+        self.progress_var = tk.DoubleVar()
+        self.progress_bar = ttk.Progressbar(
+            progress_frame,
+            variable=self.progress_var,
+            maximum=100,
+            length=400
+        )
+        self.progress_bar.pack(fill=tk.X)
+
+        # 进度文字
+        self.progress_label = tk.Label(
+            progress_frame,
+            text="",
+            font=("Arial", 9),
+            fg="gray"
+        )
+        self.progress_label.pack(pady=5)
 
         # 按钮框架
         button_frame = tk.Frame(self.window)
@@ -80,18 +124,18 @@ class LauncherGUI:
         # 启动按钮
         self.launch_button = tk.Button(
             button_frame,
-            text="验证并启动",
+            text="验证并下载",
             font=("Arial", 11),
             width=15,
             height=2,
             bg="#4CAF50",
             fg="white",
-            command=self.verify_and_launch
+            command=self.verify_and_download
         )
         self.launch_button.pack(side=tk.LEFT, padx=10)
 
         # 退出按钮
-        exit_button = tk.Button(
+        self.exit_button = tk.Button(
             button_frame,
             text="退出",
             font=("Arial", 11),
@@ -99,9 +143,9 @@ class LauncherGUI:
             height=2,
             bg="#f44336",
             fg="white",
-            command=self.window.quit
+            command=self.on_exit
         )
-        exit_button.pack(side=tk.LEFT, padx=10)
+        self.exit_button.pack(side=tk.LEFT, padx=10)
 
         # 状态栏
         self.status_label = tk.Label(
@@ -112,38 +156,177 @@ class LauncherGUI:
         )
         self.status_label.pack(side=tk.BOTTOM, pady=10)
 
-    def verify_and_launch(self):
-        """验证密钥并启动程序"""
-        user_key = self.key_entry.get().strip()
+    def on_exit(self):
+        """退出处理"""
+        self.download_cancelled = True
+        self.window.quit()
 
-        # 验证密钥格式
-        if not user_key:
-            messagebox.showerror("错误", "请输入激活密钥")
-            return
-
+    def verify_key(self, user_key):
+        """
+        验证密钥
+        :param user_key: 用户输入的密钥
+        :return: (是否有效, 错误信息)
+        """
+        # 验证格式：64位十六进制
         if len(user_key) != 64:
-            messagebox.showerror("错误", "密钥格式错误\n密钥应为64位十六进制字符")
-            return
+            return False, "密钥长度错误，应为64位"
 
         try:
             int(user_key, 16)
         except ValueError:
-            messagebox.showerror("错误", "密钥格式错误\n密钥应为64位十六进制字符")
+            return False, "密钥格式错误，应为十六进制字符"
+
+        # 如果配置了有效密钥列表，进行验证
+        if VALID_KEY_HASHES:
+            key_hash = hashlib.sha256(user_key.encode()).hexdigest()
+            if key_hash not in VALID_KEY_HASHES:
+                return False, "密钥无效"
+
+        # 如果启用在线验证
+        if ENABLE_ONLINE_VALIDATION and ONLINE_VALIDATION_URL:
+            try:
+                req = urllib.request.Request(
+                    f"{ONLINE_VALIDATION_URL}?key={user_key}",
+                    headers={'User-Agent': 'Launcher/1.0'}
+                )
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    result = response.read().decode()
+                    if result.strip().lower() != "valid":
+                        return False, "密钥验证失败"
+            except Exception as e:
+                return False, f"在线验证失败: {str(e)}"
+
+        return True, ""
+
+    def verify_and_download(self):
+        """验证密钥并开始下载"""
+        user_key = self.key_entry.get().strip()
+
+        # 验证密钥
+        if not user_key:
+            messagebox.showerror("错误", "请输入激活密钥")
             return
 
-        # 禁用按钮
-        self.launch_button.config(state="disabled")
         self.status_label.config(text="正在验证密钥...", fg="blue")
         self.window.update()
 
+        is_valid, error_msg = self.verify_key(user_key)
+
+        if not is_valid:
+            self.status_label.config(text="验证失败", fg="red")
+            messagebox.showerror("验证失败", f"密钥无效\n{error_msg}")
+            return
+
+        # 验证通过，禁用按钮
+        self.launch_button.config(state="disabled")
+        self.key_entry.config(state="disabled")
+        self.status_label.config(text="密钥验证通过，准备下载...", fg="green")
+        self.window.update()
+
+        # 检查是否已有本地文件
+        if os.path.exists(ENCRYPTED_FILE):
+            self.status_label.config(text="发现本地文件，正在解密...", fg="blue")
+            self.window.update()
+            self.decrypt_and_run(user_key)
+        else:
+            # 开始下载
+            self.start_download(user_key)
+
+    def start_download(self, user_key):
+        """开始下载文件"""
+        self.download_cancelled = False
+        self.download_thread = threading.Thread(
+            target=self.download_file,
+            args=(user_key,),
+            daemon=True
+        )
+        self.download_thread.start()
+
+    def download_file(self, user_key):
+        """下载加密文件（在后台线程中执行）"""
         try:
-            # 验证并解密
+            self.update_status("正在连接服务器...", "blue")
+
+            # 创建请求
+            req = urllib.request.Request(
+                DOWNLOAD_URL,
+                headers={'User-Agent': 'Launcher/1.0'}
+            )
+
+            with urllib.request.urlopen(req, timeout=30) as response:
+                # 获取文件大小
+                total_size = response.headers.get('Content-Length')
+                total_size = int(total_size) if total_size else 0
+
+                downloaded = 0
+                block_size = 8192
+
+                # 写入临时文件
+                temp_file = ENCRYPTED_FILE + ".tmp"
+
+                with open(temp_file, 'wb') as f:
+                    while True:
+                        if self.download_cancelled:
+                            self.update_status("下载已取消", "red")
+                            return
+
+                        buffer = response.read(block_size)
+                        if not buffer:
+                            break
+
+                        f.write(buffer)
+                        downloaded += len(buffer)
+
+                        # 更新进度
+                        if total_size > 0:
+                            progress = (downloaded / total_size) * 100
+                            self.update_progress(progress, f"下载中: {downloaded}/{total_size} 字节")
+                        else:
+                            self.update_progress(0, f"下载中: {downloaded} 字节")
+
+                # 下载完成，重命名文件
+                if os.path.exists(ENCRYPTED_FILE):
+                    os.remove(ENCRYPTED_FILE)
+                os.rename(temp_file, ENCRYPTED_FILE)
+
+                self.update_progress(100, "下载完成")
+                self.update_status("下载完成，正在解密...", "green")
+
+                # 解密并运行
+                self.window.after(500, lambda: self.decrypt_and_run(user_key))
+
+        except urllib.error.URLError as e:
+            self.update_status(f"下载失败: 网络错误", "red")
+            self.window.after(0, lambda: messagebox.showerror("下载失败", f"网络错误:\n{str(e)}"))
+            self.enable_buttons()
+        except Exception as e:
+            self.update_status(f"下载失败: {str(e)}", "red")
+            self.window.after(0, lambda: messagebox.showerror("下载失败", str(e)))
+            self.enable_buttons()
+
+    def update_progress(self, value, text):
+        """更新进度条（线程安全）"""
+        self.window.after(0, lambda: self.progress_var.set(value))
+        self.window.after(0, lambda: self.progress_label.config(text=text))
+
+    def update_status(self, text, color):
+        """更新状态文字（线程安全）"""
+        self.window.after(0, lambda: self.status_label.config(text=text, fg=color))
+
+    def enable_buttons(self):
+        """重新启用按钮"""
+        self.window.after(0, lambda: self.launch_button.config(state="normal"))
+        self.window.after(0, lambda: self.key_entry.config(state="normal"))
+
+    def decrypt_and_run(self, user_key):
+        """解密并运行程序"""
+        try:
             exe_data = self.decrypt_exe(user_key)
 
             if exe_data is None:
-                self.status_label.config(text="验证失败", fg="red")
-                self.launch_button.config(state="normal")
-                messagebox.showerror("验证失败", "密钥无效或已过期\n请检查密钥是否正确")
+                self.status_label.config(text="解密失败", fg="red")
+                messagebox.showerror("解密失败", "密钥无法解密此文件\n文件可能已损坏或密钥不匹配")
+                self.enable_buttons()
                 return
 
             # 创建临时文件并运行
@@ -158,8 +341,8 @@ class LauncherGUI:
 
         except Exception as e:
             self.status_label.config(text="启动失败", fg="red")
-            self.launch_button.config(state="normal")
             messagebox.showerror("错误", f"程序启动失败:\n{str(e)}")
+            self.enable_buttons()
 
     def decrypt_exe(self, user_key):
         """
@@ -200,11 +383,9 @@ class LauncherGUI:
         :param exe_data: EXE文件数据
         :return: 临时文件路径
         """
-        # 创建临时文件
         temp_dir = tempfile.gettempdir()
         temp_exe_path = os.path.join(temp_dir, "program_temp.exe")
 
-        # 写入数据
         with open(temp_exe_path, 'wb') as f:
             f.write(exe_data)
 
@@ -215,18 +396,18 @@ class LauncherGUI:
         运行EXE程序
         :param exe_path: EXE文件路径
         """
-        # 使用subprocess启动程序
         subprocess.Popen([exe_path], cwd=os.path.dirname(exe_path))
 
     def run(self):
         """运行GUI"""
         self.window.mainloop()
 
+
 def main():
     """主函数"""
-    # 启动GUI（文件检查移至验证时进行）
     app = LauncherGUI()
     app.run()
+
 
 if __name__ == "__main__":
     main()
