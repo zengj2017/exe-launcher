@@ -1,5 +1,5 @@
 {
-    "download_url": "https://raw.githubusercontent.com/zengj2017/exe-launcher/main/dist/program_encrypted.dat",
+    "download_url": "https://cdn.jsdelivr.net/gh/zengj2017/exe-launcher@main/dist/program_encrypted.dat",
     "encrypted_file": "program_encrypted.dat",
     "valid_keys": [
         {
