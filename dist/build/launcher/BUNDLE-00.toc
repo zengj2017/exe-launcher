@@ -1,3 +1,0 @@
-([('launcher',
-   '/Users/zengjh/Downloads/LSSB/Release/Release/dist/dist/launcher',
-   'EXECUTABLE')],)
