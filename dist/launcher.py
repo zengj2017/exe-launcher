@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-EXE启动器 V3 - 验证密钥后下载并运行
+通用文件启动器 V4 - 验证密钥后下载并运行
+支持所有文件类型: EXE, DLL, ZIP, 图片, 文档等
 流程: 验证密钥 → 下载加密文件 → 解密运行
 编译命令: pyinstaller --onefile --windowed --name=launcher launcher.py
 """
@@ -15,6 +16,7 @@ import tempfile
 import threading
 import urllib.request
 import urllib.error
+import struct
 import tkinter as tk
 from tkinter import messagebox, ttk
 from Crypto.Cipher import AES
@@ -343,20 +345,22 @@ class LauncherGUI:
     def decrypt_and_run(self, user_key):
         """解密并运行程序"""
         try:
-            exe_data = self.decrypt_exe(user_key)
+            result = self.decrypt_file(user_key)
 
-            if exe_data is None:
+            if result is None:
                 self.status_label.config(text="解密失败", fg="red")
                 messagebox.showerror("解密失败", "密钥无法解密此文件\n文件可能已损坏或密钥不匹配")
                 self.enable_buttons()
                 return
 
+            file_data, original_filename = result
+
             # 创建临时文件并运行
             self.status_label.config(text="正在启动程序...", fg="green")
             self.window.update()
 
-            temp_exe = self.create_temp_exe(exe_data)
-            self.run_exe(temp_exe)
+            temp_file = self.create_temp_file(file_data, original_filename)
+            self.run_file(temp_file)
 
             # 成功启动后关闭启动器
             self.window.destroy()
@@ -366,11 +370,11 @@ class LauncherGUI:
             messagebox.showerror("错误", f"程序启动失败:\n{str(e)}")
             self.enable_buttons()
 
-    def decrypt_exe(self, user_key):
+    def decrypt_file(self, user_key):
         """
-        解密EXE文件
+        解密文件（支持任意文件类型）
         :param user_key: 用户输入的64位密钥
-        :return: 解密后的EXE数据，失败返回None
+        :return: (解密后的数据, 原始文件名) 或 None
         """
         if not os.path.exists(ENCRYPTED_FILE):
             messagebox.showerror("错误", f"未找到加密文件: {ENCRYPTED_FILE}")
@@ -380,45 +384,76 @@ class LauncherGUI:
             # 从用户密钥派生AES密钥
             aes_key = hashlib.sha256(user_key.encode()).digest()
 
-            # 读取加密文件
             with open(ENCRYPTED_FILE, 'rb') as f:
-                iv = f.read(16)  # 读取IV
-                encrypted_data = f.read()  # 读取加密数据
+                # 尝试读取新格式（带文件名）
+                file_content = f.read()
 
-            # 解密
+            # 尝试新格式: [文件名长度2字节][文件名][IV 16字节][加密数据]
+            try:
+                filename_len = struct.unpack('<H', file_content[:2])[0]
+                if 0 < filename_len < 256:  # 合理的文件名长度
+                    original_filename = file_content[2:2+filename_len].decode('utf-8')
+                    iv = file_content[2+filename_len:2+filename_len+16]
+                    encrypted_data = file_content[2+filename_len+16:]
+
+                    # 解密
+                    cipher = AES.new(aes_key, AES.MODE_CBC, iv)
+                    decrypted_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
+
+                    return decrypted_data, original_filename
+            except:
+                pass
+
+            # 兼容旧格式: [IV 16字节][加密数据]
+            iv = file_content[:16]
+            encrypted_data = file_content[16:]
+
             cipher = AES.new(aes_key, AES.MODE_CBC, iv)
             decrypted_data = unpad(cipher.decrypt(encrypted_data), AES.block_size)
 
-            # 验证是否为有效的EXE文件(检查PE头)
-            if not decrypted_data.startswith(b'MZ'):
-                return None
-
-            return decrypted_data
+            # 旧格式默认为 EXE
+            if decrypted_data.startswith(b'MZ'):
+                return decrypted_data, "program.exe"
+            else:
+                return decrypted_data, "program.dat"
 
         except Exception as e:
             print(f"解密失败: {e}")
             return None
 
-    def create_temp_exe(self, exe_data):
+    def create_temp_file(self, file_data, filename):
         """
-        创建临时EXE文件
-        :param exe_data: EXE文件数据
+        创建临时文件
+        :param file_data: 文件数据
+        :param filename: 原始文件名
         :return: 临时文件路径
         """
         temp_dir = tempfile.gettempdir()
-        temp_exe_path = os.path.join(temp_dir, "program_temp.exe")
+        temp_path = os.path.join(temp_dir, filename)
 
-        with open(temp_exe_path, 'wb') as f:
-            f.write(exe_data)
+        with open(temp_path, 'wb') as f:
+            f.write(file_data)
 
-        return temp_exe_path
+        return temp_path
 
-    def run_exe(self, exe_path):
+    def run_file(self, file_path):
         """
-        运行EXE程序
-        :param exe_path: EXE文件路径
+        运行文件（根据类型选择打开方式）
+        :param file_path: 文件路径
         """
-        subprocess.Popen([exe_path], cwd=os.path.dirname(exe_path))
+        ext = os.path.splitext(file_path)[1].lower()
+
+        if ext in ['.exe', '.bat', '.cmd']:
+            # 可执行文件直接运行
+            subprocess.Popen([file_path], cwd=os.path.dirname(file_path))
+        else:
+            # 其他文件用系统默认程序打开
+            if sys.platform == 'win32':
+                os.startfile(file_path)
+            elif sys.platform == 'darwin':
+                subprocess.Popen(['open', file_path])
+            else:
+                subprocess.Popen(['xdg-open', file_path])
 
     def run(self):
         """运行GUI"""
