@@ -21,28 +21,38 @@ from tkinter import messagebox, ttk
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
-# ===== 配置区域 =====
-# 云存储下载链接（替换为您的实际链接）
-DOWNLOAD_URL = "https://your-cloud-storage.com/program_encrypted.dat"
-
-# 本地保存的加密文件名
-ENCRYPTED_FILE = "program_encrypted.dat"
-
-# 激活记录文件
+# ===== 配置文件路径 =====
+CONFIG_FILE = "config.json"
 ACTIVATION_FILE = "activation.dat"
+# ===== 配置文件路径结束 =====
 
-# 有效密钥及其时效配置
-# 格式: {密钥的SHA256哈希: 有效天数} - 0表示永久有效
-VALID_KEYS_CONFIG = {
-    # 示例:
-    # hashlib.sha256("您的64位密钥".encode()).hexdigest(): 30,  # 30天有效
-    # hashlib.sha256("另一个密钥".encode()).hexdigest(): 0,    # 永久有效
-}
+def load_config():
+    """从配置文件加载配置"""
+    config = {
+        "download_url": "https://your-cloud-storage.com/program_encrypted.dat",
+        "encrypted_file": "program_encrypted.dat",
+        "valid_keys": [],
+        "enable_online_validation": False,
+        "online_validation_url": ""
+    }
 
-# 是否启用在线密钥验证
-ENABLE_ONLINE_VALIDATION = False
-ONLINE_VALIDATION_URL = ""  # 在线验证API地址
-# ===== 配置区域结束 =====
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+                config.update(loaded)
+        except Exception as e:
+            print(f"加载配置文件失败: {e}")
+
+    return config
+
+# 加载配置
+CONFIG = load_config()
+DOWNLOAD_URL = CONFIG.get("download_url", "")
+ENCRYPTED_FILE = CONFIG.get("encrypted_file", "program_encrypted.dat")
+VALID_KEYS = CONFIG.get("valid_keys", [])
+ENABLE_ONLINE_VALIDATION = CONFIG.get("enable_online_validation", False)
+ONLINE_VALIDATION_URL = CONFIG.get("online_validation_url", "")
 
 
 class ActivationManager:
@@ -272,13 +282,22 @@ class LauncherGUIV2:
         except ValueError:
             return False, "密钥格式错误，应为十六进制字符", None
 
-        key_hash = hashlib.sha256(user_key.encode()).hexdigest()
+        validity_days = 30  # 默认30天
 
         # 如果配置了有效密钥列表，进行验证
-        if VALID_KEYS_CONFIG:
-            if key_hash not in VALID_KEYS_CONFIG:
+        if VALID_KEYS:
+            key_found = False
+            for key_info in VALID_KEYS:
+                if isinstance(key_info, dict):
+                    if key_info.get("key") == user_key:
+                        key_found = True
+                        validity_days = key_info.get("validity_days", 30)
+                        break
+                elif key_info == user_key:
+                    key_found = True
+                    break
+            if not key_found:
                 return False, "密钥无效", None
-            validity_days = VALID_KEYS_CONFIG[key_hash]
         else:
             # 如果没有配置密钥列表，从密钥末4位提取有效期信息
             validity_fingerprint = user_key[-4:]

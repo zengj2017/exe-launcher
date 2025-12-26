@@ -8,6 +8,7 @@ EXE启动器 V3 - 验证密钥后下载并运行
 
 import os
 import sys
+import json
 import hashlib
 import subprocess
 import tempfile
@@ -19,24 +20,37 @@ from tkinter import messagebox, ttk
 from Crypto.Cipher import AES
 from Crypto.Util.Padding import unpad
 
-# ===== 配置区域 =====
-# 云存储下载链接（替换为您的实际链接）
-DOWNLOAD_URL = "https://your-cloud-storage.com/program_encrypted.dat"
+# ===== 配置文件路径 =====
+CONFIG_FILE = "config.json"
+# ===== 配置文件路径结束 =====
 
-# 本地保存的加密文件名
-ENCRYPTED_FILE = "program_encrypted.dat"
+def load_config():
+    """从配置文件加载配置"""
+    config = {
+        "download_url": "https://your-cloud-storage.com/program_encrypted.dat",
+        "encrypted_file": "program_encrypted.dat",
+        "valid_keys": [],
+        "enable_online_validation": False,
+        "online_validation_url": ""
+    }
 
-# 有效密钥列表（SHA256哈希值，用于快速验证）
-# 格式: 密钥的SHA256哈希值
-VALID_KEY_HASHES = [
-    # 示例: hashlib.sha256("您的64位密钥".encode()).hexdigest()
-    # "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-]
+    if os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, 'r', encoding='utf-8') as f:
+                loaded = json.load(f)
+                config.update(loaded)
+        except Exception as e:
+            print(f"加载配置文件失败: {e}")
 
-# 是否启用在线密钥验证（如果为False，则只验证密钥格式和本地哈希列表）
-ENABLE_ONLINE_VALIDATION = False
-ONLINE_VALIDATION_URL = ""  # 在线验证API地址
-# ===== 配置区域结束 =====
+    return config
+
+# 加载配置
+CONFIG = load_config()
+DOWNLOAD_URL = CONFIG.get("download_url", "")
+ENCRYPTED_FILE = CONFIG.get("encrypted_file", "program_encrypted.dat")
+VALID_KEYS = CONFIG.get("valid_keys", [])
+ENABLE_ONLINE_VALIDATION = CONFIG.get("enable_online_validation", False)
+ONLINE_VALIDATION_URL = CONFIG.get("online_validation_url", "")
 
 
 class LauncherGUI:
@@ -177,9 +191,17 @@ class LauncherGUI:
             return False, "密钥格式错误，应为十六进制字符"
 
         # 如果配置了有效密钥列表，进行验证
-        if VALID_KEY_HASHES:
-            key_hash = hashlib.sha256(user_key.encode()).hexdigest()
-            if key_hash not in VALID_KEY_HASHES:
+        if VALID_KEYS:
+            key_found = False
+            for key_info in VALID_KEYS:
+                if isinstance(key_info, dict):
+                    if key_info.get("key") == user_key:
+                        key_found = True
+                        break
+                elif key_info == user_key:
+                    key_found = True
+                    break
+            if not key_found:
                 return False, "密钥无效"
 
         # 如果启用在线验证

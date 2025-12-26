@@ -1,0 +1,26 @@
+{
+    "download_url": "https://your-cloud-storage.com/program_encrypted.dat",
+    "encrypted_file": "program_encrypted.dat",
+    "valid_keys": [
+        {
+            "key": "fb78bfc364f01d0a7484783322ea7a71a9fe2a8ca08630f0ce5ec8b91e0f0c8b",
+            "validity_days": 0,
+            "user_id": "admin",
+            "note": "管理员永久密钥"
+        },
+        {
+            "key": "11e732e519b7efdab493993049a513ea97cc87d884091ce22e0144c0119ae58b",
+            "validity_days": 30,
+            "user_id": "user001",
+            "note": "测试用户30天密钥"
+        },
+        {
+            "key": "21f089764c61c4666095dfd1f52fd86067804d0271628ed199418313ad8d204c",
+            "validity_days": 7,
+            "user_id": "trial001",
+            "note": "试用用户7天密钥"
+        }
+    ],
+    "enable_online_validation": false,
+    "online_validation_url": ""
+}
