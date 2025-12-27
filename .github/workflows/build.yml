@@ -1,22 +1,11 @@
-# GitHub Actions 工作流 - 跨平台编译 launcher
-# 此工作流可以在 GitHub 云端为 Windows/macOS/Linux 编译可执行文件
-# 使用方法：将代码推送到 GitHub，然后在 Actions 页面手动触发构建
-
-name: Build Launcher Executables
+# GitHub Actions 工作流 - 编译 launcher.exe
+name: Build Launcher
 
 on:
-  # 手动触发
   workflow_dispatch:
-    inputs:
-      version:
-        description: '选择要编译的版本'
-        required: true
-        default: 'both'
-        type: choice
-        options:
-          - v1
-          - v2
-          - both
+  push:
+    paths:
+      - 'dist/launcher.py'
 
 jobs:
   build-windows:
@@ -34,63 +23,14 @@ jobs:
         run: |
           pip install pyinstaller pycryptodome
 
-      - name: Build V1 (launcher.exe)
-        if: ${{ github.event.inputs.version == 'v1' || github.event.inputs.version == 'both' }}
+      - name: Build launcher.exe
         working-directory: dist
         run: |
           pyinstaller --onefile --windowed --name=launcher launcher.py
 
-      - name: Build V2 (launcher_v2.exe)
-        if: ${{ github.event.inputs.version == 'v2' || github.event.inputs.version == 'both' }}
-        working-directory: dist
-        run: |
-          pyinstaller --onefile --windowed --name=launcher_v2 launcher_v2.py
-
-      - name: Upload Windows Artifacts
+      - name: Upload Windows Executable
         uses: actions/upload-artifact@v4
         with:
-          name: windows-executables
-          path: |
-            dist/dist/*.exe
-          retention-days: 30
-
-  build-macos:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install dependencies
-        run: |
-          pip install pyinstaller pycryptodome
-
-      - name: Build V1 (launcher.app)
-        if: ${{ github.event.inputs.version == 'v1' || github.event.inputs.version == 'both' }}
-        working-directory: dist
-        run: |
-          pyinstaller --onedir --windowed --name=launcher launcher.py
-
-      - name: Build V2 (launcher_v2.app)
-        if: ${{ github.event.inputs.version == 'v2' || github.event.inputs.version == 'both' }}
-        working-directory: dist
-        run: |
-          pyinstaller --onedir --windowed --name=launcher_v2 launcher_v2.py
-
-      - name: Zip macOS apps
-        run: |
-          cd dist/dist
-          if [ -d "launcher.app" ]; then zip -r launcher-macos.zip launcher.app; fi
-          if [ -d "launcher_v2.app" ]; then zip -r launcher_v2-macos.zip launcher_v2.app; fi
-
-      - name: Upload macOS Artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-executables
-          path: |
-            dist/dist/*.zip
+          name: launcher-windows
+          path: dist/dist/launcher.exe
           retention-days: 30

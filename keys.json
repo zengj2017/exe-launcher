@@ -1,0 +1,17 @@
+{
+    "version": 1,
+    "updated": "2025-12-27",
+    "keys": [
+        {
+            "key": "fb78bfc364f01d0a7484783322ea7a71a9fe2a8ca08630f0ce5ec8b91e0f0c8b",
+            "user": "admin",
+            "expires": "",
+            "enabled": true,
+            "note": "管理员永久密钥"
+        }
+    ],
+    "settings": {
+        "download_url": "https://cdn.jsdelivr.net/gh/zengj2017/exe-launcher@main/dist/program_encrypted.dat",
+        "contact": "续费联系: your@email.com"
+    }
+}
