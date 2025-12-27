@@ -162,10 +162,12 @@ class KeyValidator:
     def __init__(self):
         self.keys_data = None
         self.key_info = None
+        self.last_error = ""
 
     def fetch_keys(self):
         """从云端获取密钥列表"""
         if not KEYS_URL:
+            self.last_error = "未配置密钥服务器地址"
             return None
 
         try:
@@ -176,8 +178,11 @@ class KeyValidator:
             with urllib.request.urlopen(req, timeout=15) as response:
                 self.keys_data = json.loads(response.read().decode())
                 return self.keys_data
+        except urllib.error.URLError as e:
+            self.last_error = f"网络错误: {e.reason}"
+            return None
         except Exception as e:
-            print(f"获取密钥列表失败: {e}")
+            self.last_error = f"获取失败: {str(e)}"
             return None
 
     def validate_key(self, user_key):
@@ -203,7 +208,8 @@ class KeyValidator:
             self.fetch_keys()
 
         if not self.keys_data:
-            return False, "无法连接验证服务器", None
+            error_detail = self.last_error if self.last_error else "未知错误"
+            return False, f"无法连接验证服务器\n{error_detail}\n\n请检查网络连接", None
 
         # 查找密钥
         keys = self.keys_data.get("keys", [])
