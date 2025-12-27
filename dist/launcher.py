@@ -165,7 +165,18 @@ class KeyValidator:
         self.last_error = ""
 
     def fetch_keys(self):
-        """从云端获取密钥列表"""
+        """从云端或本地获取密钥列表"""
+        # 优先尝试本地 keys.json
+        local_keys_file = "keys.json"
+        if os.path.exists(local_keys_file):
+            try:
+                with open(local_keys_file, 'r', encoding='utf-8') as f:
+                    self.keys_data = json.load(f)
+                    return self.keys_data
+            except Exception as e:
+                self.last_error = f"本地密钥文件读取失败: {str(e)}"
+
+        # 如果没有本地文件，从云端获取
         if not KEYS_URL:
             self.last_error = "未配置密钥服务器地址"
             return None
