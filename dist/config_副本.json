@@ -1,0 +1,9 @@
+{
+    "keys_url": "https://gcore.jsdelivr.net/gh/zengj2017/exe-launcher@main/keys.json",
+    "download_url": "https://gcore.jsdelivr.net/gh/zengj2017/exe-launcher@main/dist/program_encrypted.dat",
+    "encrypted_file": "program_encrypted.dat",
+    "time_api": "http://worldtimeapi.org/api/ip",
+    "contact": "续费联系: your@email.com",
+    "offline_grace_days": 3,
+    "expire_warning_days": 7
+}
