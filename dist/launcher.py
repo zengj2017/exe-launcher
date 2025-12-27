@@ -343,7 +343,7 @@ class LauncherGUI:
         self.window.after(0, lambda: self.key_entry.config(state="normal"))
 
     def decrypt_and_run(self, user_key):
-        """解密并运行程序"""
+        """解密并处理文件"""
         try:
             result = self.decrypt_file(user_key)
 
@@ -355,19 +355,37 @@ class LauncherGUI:
 
             file_data, original_filename = result
 
-            # 创建临时文件并运行
-            self.status_label.config(text="正在启动程序...", fg="green")
+            # 保存到当前目录
+            self.status_label.config(text="正在保存文件...", fg="green")
             self.window.update()
 
-            temp_file = self.create_temp_file(file_data, original_filename)
-            self.run_file(temp_file)
+            output_path = self.save_file(file_data, original_filename)
 
-            # 成功启动后关闭启动器
-            self.window.destroy()
+            # 根据文件类型处理
+            ext = os.path.splitext(original_filename)[1].lower()
+
+            if ext == '.zip':
+                # ZIP 文件：提示用户自行解压
+                self.status_label.config(text="解密完成", fg="green")
+                messagebox.showinfo("解密成功",
+                    f"文件已保存到:\n{output_path}\n\n请自行解压使用")
+                self.window.destroy()
+            elif ext in ['.exe', '.bat', '.cmd']:
+                # 可执行文件：直接运行
+                self.status_label.config(text="正在启动程序...", fg="green")
+                self.window.update()
+                self.run_file(output_path)
+                self.window.destroy()
+            else:
+                # 其他文件：用默认程序打开
+                self.status_label.config(text="正在打开文件...", fg="green")
+                self.window.update()
+                self.run_file(output_path)
+                self.window.destroy()
 
         except Exception as e:
-            self.status_label.config(text="启动失败", fg="red")
-            messagebox.showerror("错误", f"程序启动失败:\n{str(e)}")
+            self.status_label.config(text="处理失败", fg="red")
+            messagebox.showerror("错误", f"文件处理失败:\n{str(e)}")
             self.enable_buttons()
 
     def decrypt_file(self, user_key):
@@ -421,20 +439,33 @@ class LauncherGUI:
             print(f"解密失败: {e}")
             return None
 
-    def create_temp_file(self, file_data, filename):
+    def save_file(self, file_data, filename):
         """
-        创建临时文件
+        保存解密后的文件到当前目录
         :param file_data: 文件数据
         :param filename: 原始文件名
-        :return: 临时文件路径
+        :return: 保存路径
         """
-        temp_dir = tempfile.gettempdir()
-        temp_path = os.path.join(temp_dir, filename)
+        # 获取当前程序所在目录
+        if getattr(sys, 'frozen', False):
+            # PyInstaller 打包后的路径
+            current_dir = os.path.dirname(sys.executable)
+        else:
+            current_dir = os.path.dirname(os.path.abspath(__file__))
 
-        with open(temp_path, 'wb') as f:
+        output_path = os.path.join(current_dir, filename)
+
+        # 如果文件已存在，添加序号
+        base, ext = os.path.splitext(filename)
+        counter = 1
+        while os.path.exists(output_path):
+            output_path = os.path.join(current_dir, f"{base}_{counter}{ext}")
+            counter += 1
+
+        with open(output_path, 'wb') as f:
             f.write(file_data)
 
-        return temp_path
+        return output_path
 
     def run_file(self, file_path):
         """
