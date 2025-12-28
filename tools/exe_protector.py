@@ -37,6 +37,8 @@ ORIGINAL_FILENAME = {original_filename}
 KEY_HASH = {key_hash}  # 密钥的 SHA256 哈希（用于快速验证）
 KEYS_URL = {keys_url}  # 云端密钥验证地址（可选）
 CONTACT_INFO = {contact_info}
+ENABLE_MACHINE_BINDING = {enable_binding}  # 是否启用机器码绑定
+APP_SECRET = {app_secret}  # 应用密钥（用于加密绑定数据）
 # =================================
 
 def derive_key(user_key: str) -> bytes:
@@ -114,6 +116,196 @@ def verify_key_local(user_key: str) -> bool:
     key_hash = hashlib.sha256(hashlib.sha256(user_key.encode()).digest()).hexdigest()
     return key_hash == KEY_HASH
 
+def get_machine_id() -> str:
+    """获取机器唯一标识"""
+    components = []
+
+    try:
+        if sys.platform == 'win32':
+            # Windows: 获取多种硬件信息
+            commands = {{
+                'mac': 'wmic nic where "NetEnabled=true" get MACAddress',
+                'disk': 'wmic diskdrive get SerialNumber',
+                'board': 'wmic baseboard get SerialNumber',
+                'cpu': 'wmic cpu get ProcessorId'
+            }}
+
+            for name, cmd in commands.items():
+                try:
+                    result = subprocess.run(
+                        cmd, shell=True, capture_output=True,
+                        text=True, timeout=5
+                    )
+                    lines = [l.strip() for l in result.stdout.split('\\n') if l.strip()]
+                    if len(lines) > 1:
+                        value = lines[1]
+                        if value and value not in ['None', 'To be filled', '']:
+                            components.append(f"{{name}}:{{value}}")
+                except:
+                    pass
+    except:
+        pass
+
+    # 备用方案：使用 MAC 地址
+    if not components:
+        try:
+            import uuid
+            mac = ':'.join(['{{:02x}}'.format((uuid.getnode() >> i) & 0xff)
+                           for i in range(0,48,8)][::-1])
+            components.append(f"mac:{{mac}}")
+        except:
+            components.append("fallback:unknown")
+
+    combined = '|'.join(sorted(components))
+    machine_id = hashlib.sha256(combined.encode()).hexdigest()[:32]
+    return machine_id
+
+def encrypt_binding_data(data: dict, secret: str) -> bytes:
+    """加密绑定数据"""
+    try:
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import pad
+        from Crypto.Random import get_random_bytes
+
+        # 计算校验和
+        import json
+        json_str = json.dumps(data.get('bindings', {{}}), sort_keys=True)
+        data['checksum'] = hashlib.sha256(json_str.encode()).hexdigest()
+
+        key = hashlib.sha256(secret.encode()).digest()
+        iv = get_random_bytes(16)
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        plaintext = json.dumps(data).encode()
+        ciphertext = cipher.encrypt(pad(plaintext, AES.block_size))
+
+        return iv + ciphertext
+    except:
+        # 简化版加密
+        import json
+        json_str = json.dumps(data)
+        key = hashlib.sha256(secret.encode()).digest()
+        result = bytearray()
+        for i, byte in enumerate(json_str.encode()):
+            result.append(byte ^ key[i % 32])
+        return bytes(result)
+
+def decrypt_binding_data(encrypted: bytes, secret: str) -> dict:
+    """解密绑定数据"""
+    try:
+        from Crypto.Cipher import AES
+        from Crypto.Util.Padding import unpad
+
+        key = hashlib.sha256(secret.encode()).digest()
+        iv = encrypted[:16]
+        ciphertext = encrypted[16:]
+        cipher = AES.new(key, AES.MODE_CBC, iv)
+        plaintext = unpad(cipher.decrypt(ciphertext), AES.block_size)
+        data = json.loads(plaintext.decode())
+
+        # 验证校验和
+        json_str = json.dumps(data.get('bindings', {{}}), sort_keys=True)
+        expected = hashlib.sha256(json_str.encode()).hexdigest()
+        if data.get('checksum') != expected:
+            raise ValueError("数据已被篡改")
+
+        return data
+    except:
+        # 简化版解密
+        key = hashlib.sha256(secret.encode()).digest()
+        result = bytearray()
+        for i, byte in enumerate(encrypted):
+            result.append(byte ^ key[i % 32])
+        return json.loads(result.decode())
+
+class MachineBinding:
+    """机器码绑定管理"""
+
+    def __init__(self):
+        self.machine_id = get_machine_id()
+        self.binding_file = self._get_binding_path()
+        self.bindings = self._load_bindings()
+
+    def _get_binding_path(self) -> str:
+        """获取绑定文件路径"""
+        if sys.platform == 'win32':
+            appdata = os.environ.get('APPDATA', '')
+            if appdata:
+                binding_dir = os.path.join(appdata, '.app_binding')
+                try:
+                    os.makedirs(binding_dir, exist_ok=True)
+                    return os.path.join(binding_dir, 'binding.dat')
+                except:
+                    pass
+        return 'binding.dat'
+
+    def _load_bindings(self) -> dict:
+        """加载绑定数据"""
+        if not os.path.exists(self.binding_file):
+            return {{"version": 1, "bindings": {{}}}}
+
+        try:
+            with open(self.binding_file, 'rb') as f:
+                encrypted = f.read()
+            return decrypt_binding_data(encrypted, APP_SECRET)
+        except:
+            return {{"version": 1, "bindings": {{}}, "corrupted": True}}
+
+    def _save_bindings(self):
+        """保存绑定数据"""
+        try:
+            encrypted = encrypt_binding_data(self.bindings, APP_SECRET)
+            with open(self.binding_file, 'wb') as f:
+                f.write(encrypted)
+
+            # Windows: 额外保存到注册表
+            if sys.platform == 'win32':
+                try:
+                    import winreg
+                    key = winreg.CreateKey(winreg.HKEY_CURRENT_USER,
+                                          r"Software\\AppBinding")
+                    bindings_json = json.dumps(self.bindings)
+                    winreg.SetValueEx(key, "data", 0, winreg.REG_SZ, bindings_json)
+                    winreg.CloseKey(key)
+                except:
+                    pass
+        except:
+            pass
+
+    def verify_and_bind(self, user_key: str) -> tuple:
+        """验证并绑定密钥到当前机器"""
+        if self.bindings.get("corrupted"):
+            return False, "安全数据已损坏，请联系管理员"
+
+        key_hash = hashlib.sha256(user_key.encode()).hexdigest()[:16]
+        bindings = self.bindings.get("bindings", {{}})
+
+        if key_hash in bindings:
+            # 已有绑定记录
+            binding = bindings[key_hash]
+            bound_machine = binding.get("machine_id")
+
+            if bound_machine != self.machine_id:
+                return False, "此密钥已绑定到其他机器\\n无法在当前机器使用"
+
+            # 更新使用记录
+            binding["last_use"] = datetime.now().isoformat()
+            binding["use_count"] = binding.get("use_count", 0) + 1
+            self._save_bindings()
+
+            return True, f"验证通过 (使用次数: {{binding['use_count']}})"
+        else:
+            # 首次使用，创建绑定
+            bindings[key_hash] = {{
+                "machine_id": self.machine_id,
+                "first_use": datetime.now().isoformat(),
+                "last_use": datetime.now().isoformat(),
+                "use_count": 1
+            }}
+            self.bindings["bindings"] = bindings
+            self._save_bindings()
+
+            return True, "密钥已绑定到当前机器"
+
 def show_message(title: str, message: str, error: bool = False):
     """显示消息框"""
     try:
@@ -169,6 +361,21 @@ def main():
     if not online_valid:
         show_message("验证失败", info, error=True)
         sys.exit(1)
+
+    # 机器码绑定验证
+    if ENABLE_MACHINE_BINDING:
+        try:
+            binding = MachineBinding()
+            success, msg = binding.verify_and_bind(user_key)
+            if not success:
+                show_message("绑定验证失败", msg, error=True)
+                sys.exit(1)
+            # 验证成功时显示提示信息
+            if "绑定" in msg:
+                show_message("验证成功", msg, error=False)
+        except Exception as e:
+            show_message("绑定验证失败", f"验证过程出错\\n{{str(e)}}", error=True)
+            sys.exit(1)
 
     # 解密程序
     try:
@@ -253,7 +460,9 @@ def create_protected_exe(
     output_dir: str,
     user_key: str = None,
     keys_url: str = "",
-    contact_info: str = "联系管理员获取授权"
+    contact_info: str = "联系管理员获取授权",
+    enable_machine_binding: bool = True,
+    app_secret: str = None
 ) -> dict:
     """
     创建受保护的 EXE
@@ -264,6 +473,8 @@ def create_protected_exe(
         user_key: 指定密钥（可选，不指定则自动生成）
         keys_url: 云端密钥验证地址（可选）
         contact_info: 联系信息
+        enable_machine_binding: 是否启用机器码绑定（默认True）
+        app_secret: 应用密钥（用于加密绑定数据，可选）
 
     Returns:
         包含输出文件路径和密钥的字典
@@ -277,6 +488,10 @@ def create_protected_exe(
             raise ValueError("密钥必须是 64 位十六进制字符")
     else:
         user_key = generate_key()
+
+    # 生成应用密钥（用于加密绑定数据）
+    if not app_secret:
+        app_secret = secrets.token_hex(32)
 
     # 加密 EXE
     print(f"正在加密: {input_exe}")
@@ -295,7 +510,9 @@ def create_protected_exe(
         original_filename=repr(original_filename),
         key_hash=repr(key_hash),
         keys_url=repr(keys_url) if keys_url else "None",
-        contact_info=repr(contact_info)
+        contact_info=repr(contact_info),
+        enable_binding=enable_machine_binding,
+        app_secret=repr(app_secret)
     )
 
     # 保存包装程序
@@ -360,6 +577,10 @@ def main():
     parser.add_argument('-k', '--key', help='指定 64 位密钥（可选）')
     parser.add_argument('--keys-url', help='云端密钥验证地址（可选）')
     parser.add_argument('--contact', default='联系管理员获取授权', help='联系信息')
+    parser.add_argument('--enable-binding', action='store_true', default=True,
+                       help='启用机器码绑定（默认启用）')
+    parser.add_argument('--no-binding', dest='enable_binding', action='store_false',
+                       help='禁用机器码绑定')
 
     args = parser.parse_args()
 
@@ -369,7 +590,8 @@ def main():
             args.output,
             args.key,
             args.keys_url,
-            args.contact
+            args.contact,
+            args.enable_binding
         )
 
         print("\n" + "=" * 50)
