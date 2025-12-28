@@ -63,3 +63,4 @@ keys_export*.txt
 *.temp
 *.log
 dist/program_encrypted.dat
+主机.exe
