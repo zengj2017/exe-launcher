@@ -307,33 +307,174 @@ class MachineBinding:
             return True, "密钥已绑定到当前机器"
 
 def show_message(title: str, message: str, error: bool = False):
-    """显示消息框"""
-    try:
-        MB_OK = 0x0
-        MB_ICONERROR = 0x10
-        MB_ICONINFO = 0x40
-        icon = MB_ICONERROR if error else MB_ICONINFO
-        ctypes.windll.user32.MessageBoxW(0, message, title, MB_OK | icon)
-    except:
-        print(f"{{title}}: {{message}}")
-
-def get_key_input() -> str:
-    """获取用户输入的密钥"""
+    """显示美化的消息框"""
     try:
         import tkinter as tk
-        from tkinter import simpledialog
+        from tkinter import ttk
 
         root = tk.Tk()
-        root.withdraw()
+        root.title(title)
+        root.resizable(False, False)
         root.attributes('-topmost', True)
 
-        key = simpledialog.askstring(
-            "密钥验证",
-            "请输入 64 位授权密钥：",
-            parent=root
-        )
-        root.destroy()
-        return key if key else ""
+        # 窗口大小和居中
+        width, height = 380, 180
+        screen_w = root.winfo_screenwidth()
+        screen_h = root.winfo_screenheight()
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        root.geometry(f"{{width}}x{{height}}+{{x}}+{{y}}")
+
+        # 设置背景色
+        bg_color = "#fff0f0" if error else "#f0fff0"
+        root.configure(bg=bg_color)
+
+        # 图标区域
+        icon_frame = tk.Frame(root, bg=bg_color)
+        icon_frame.pack(pady=(20, 10))
+
+        icon_text = "✗" if error else "✓"
+        icon_color = "#e74c3c" if error else "#27ae60"
+        icon_label = tk.Label(icon_frame, text=icon_text, font=("Arial", 32, "bold"),
+                             fg=icon_color, bg=bg_color)
+        icon_label.pack()
+
+        # 消息
+        msg_label = tk.Label(root, text=message, font=("Microsoft YaHei UI", 11),
+                            fg="#333333", bg=bg_color, wraplength=340, justify="center")
+        msg_label.pack(pady=(0, 15))
+
+        # 确定按钮
+        btn_color = "#e74c3c" if error else "#27ae60"
+        btn = tk.Button(root, text="确定", font=("Microsoft YaHei UI", 10),
+                       bg=btn_color, fg="white", width=12, height=1,
+                       relief="flat", cursor="hand2",
+                       command=root.destroy)
+        btn.pack()
+
+        root.mainloop()
+    except:
+        try:
+            MB_OK = 0x0
+            MB_ICONERROR = 0x10
+            MB_ICONINFO = 0x40
+            icon = MB_ICONERROR if error else MB_ICONINFO
+            ctypes.windll.user32.MessageBoxW(0, message, title, MB_OK | icon)
+        except:
+            print(f"{{title}}: {{message}}")
+
+def get_key_input() -> str:
+    """获取用户输入的密钥 - 美化版"""
+    try:
+        import tkinter as tk
+        from tkinter import ttk
+
+        result = {{"key": ""}}
+
+        root = tk.Tk()
+        root.title("软件授权验证")
+        root.resizable(False, False)
+        root.attributes('-topmost', True)
+
+        # 窗口大小和居中
+        width, height = 450, 280
+        screen_w = root.winfo_screenwidth()
+        screen_h = root.winfo_screenheight()
+        x = (screen_w - width) // 2
+        y = (screen_h - height) // 2
+        root.geometry(f"{{width}}x{{height}}+{{x}}+{{y}}")
+
+        # 背景色
+        bg_color = "#f5f6fa"
+        root.configure(bg=bg_color)
+
+        # 标题区域
+        title_frame = tk.Frame(root, bg="#3498db", height=60)
+        title_frame.pack(fill="x")
+        title_frame.pack_propagate(False)
+
+        title_label = tk.Label(title_frame, text="🔐 软件授权验证",
+                              font=("Microsoft YaHei UI", 14, "bold"),
+                              fg="white", bg="#3498db")
+        title_label.pack(expand=True)
+
+        # 内容区域
+        content_frame = tk.Frame(root, bg=bg_color)
+        content_frame.pack(fill="both", expand=True, padx=30, pady=20)
+
+        # 提示文字
+        hint_label = tk.Label(content_frame, text="请输入 64 位授权密钥",
+                             font=("Microsoft YaHei UI", 10),
+                             fg="#666666", bg=bg_color)
+        hint_label.pack(anchor="w")
+
+        # 密钥输入框
+        key_var = tk.StringVar()
+        key_entry = tk.Entry(content_frame, textvariable=key_var,
+                            font=("Consolas", 11), width=50,
+                            relief="solid", bd=1)
+        key_entry.pack(fill="x", pady=(5, 15), ipady=8)
+        key_entry.focus_set()
+
+        # 状态标签
+        status_label = tk.Label(content_frame, text="",
+                               font=("Microsoft YaHei UI", 9),
+                               fg="#999999", bg=bg_color)
+        status_label.pack(anchor="w")
+
+        # 更新状态
+        def update_status(*args):
+            key = key_var.get().strip()
+            if len(key) == 0:
+                status_label.config(text="", fg="#999999")
+            elif len(key) == 64:
+                try:
+                    int(key, 16)
+                    status_label.config(text="✓ 密钥格式正确", fg="#27ae60")
+                except:
+                    status_label.config(text="✗ 密钥包含无效字符", fg="#e74c3c")
+            else:
+                status_label.config(text=f"已输入 {{len(key)}}/64 位", fg="#f39c12")
+
+        key_var.trace("w", update_status)
+
+        # 按钮区域
+        btn_frame = tk.Frame(content_frame, bg=bg_color)
+        btn_frame.pack(fill="x", pady=(10, 0))
+
+        def on_submit():
+            result["key"] = key_var.get().strip()
+            root.destroy()
+
+        def on_cancel():
+            result["key"] = ""
+            root.destroy()
+
+        # 取消按钮
+        cancel_btn = tk.Button(btn_frame, text="取消", font=("Microsoft YaHei UI", 10),
+                              bg="#95a5a6", fg="white", width=10, height=1,
+                              relief="flat", cursor="hand2", command=on_cancel)
+        cancel_btn.pack(side="right", padx=(10, 0))
+
+        # 验证按钮
+        submit_btn = tk.Button(btn_frame, text="验证授权", font=("Microsoft YaHei UI", 10, "bold"),
+                              bg="#3498db", fg="white", width=12, height=1,
+                              relief="flat", cursor="hand2", command=on_submit)
+        submit_btn.pack(side="right")
+
+        # 回车提交
+        root.bind('<Return>', lambda e: on_submit())
+        root.bind('<Escape>', lambda e: on_cancel())
+
+        # 联系信息
+        contact_label = tk.Label(root, text=CONTACT_INFO,
+                                font=("Microsoft YaHei UI", 8),
+                                fg="#999999", bg=bg_color)
+        contact_label.pack(side="bottom", pady=(0, 10))
+
+        root.mainloop()
+        return result["key"]
+
     except:
         return input("请输入 64 位授权密钥: ")
 
