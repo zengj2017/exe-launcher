@@ -39,6 +39,7 @@ KEYS_URL = {keys_url}  # 云端密钥验证地址（可选）
 CONTACT_INFO = {contact_info}
 ENABLE_MACHINE_BINDING = {enable_binding}  # 是否启用机器码绑定
 APP_SECRET = {app_secret}  # 应用密钥（用于加密绑定数据）
+WINDOW_TITLE = {window_title}  # 窗口标题
 # =================================
 
 def derive_key(user_key: str) -> bytes:
@@ -470,7 +471,7 @@ def get_key_input() -> str:
                              fg="#ffffff", bg="#667eea")
         icon_label.pack()
 
-        title_label = tk.Label(title_frame, text="软件授权验证",
+        title_label = tk.Label(title_frame, text=WINDOW_TITLE,
                               font=("Segoe UI", 14, "bold"),
                               fg="#ffffff", bg="#667eea")
         title_label.pack()
@@ -740,7 +741,8 @@ def create_protected_exe(
     keys_url: str = "",
     contact_info: str = "联系管理员获取授权",
     enable_machine_binding: bool = True,
-    app_secret: str = None
+    app_secret: str = None,
+    window_title: str = "软件授权验证"
 ) -> dict:
     """
     创建受保护的 EXE
@@ -790,7 +792,8 @@ def create_protected_exe(
         keys_url=repr(keys_url) if keys_url else "None",
         contact_info=repr(contact_info),
         enable_binding=enable_machine_binding,
-        app_secret=repr(app_secret)
+        app_secret=repr(app_secret),
+        window_title=repr(window_title)
     )
 
     # 保存包装程序
@@ -855,6 +858,7 @@ def main():
     parser.add_argument('-k', '--key', help='指定 64 位密钥（可选）')
     parser.add_argument('--keys-url', help='云端密钥验证地址（可选）')
     parser.add_argument('--contact', default='联系管理员获取授权', help='联系信息')
+    parser.add_argument('--title', default='软件授权验证', help='窗口标题')
     parser.add_argument('--enable-binding', action='store_true', default=True,
                        help='启用机器码绑定（默认启用）')
     parser.add_argument('--no-binding', dest='enable_binding', action='store_false',
@@ -869,7 +873,8 @@ def main():
             args.key,
             args.keys_url,
             args.contact,
-            args.enable_binding
+            args.enable_binding,
+            window_title=args.title
         )
 
         print("\n" + "=" * 50)
