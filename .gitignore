@@ -62,3 +62,4 @@ keys_export*.txt
 *.tmp
 *.temp
 *.log
+dist/program_encrypted.dat
