@@ -1,0 +1,40 @@
+# GitHub Actions 工作流 - 编译受保护的 EXE
+name: Build Protected EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'protected/*.py'
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller pycryptodome
+
+      - name: Build protected EXE
+        working-directory: protected
+        run: |
+          Get-ChildItem -Filter "*.py" | ForEach-Object {
+            $name = $_.BaseName
+            Write-Host "Building: $name"
+            pyinstaller --onefile --windowed --name=$name $_.Name
+          }
+
+      - name: Upload Protected Executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: protected-exe
+          path: protected/dist/*.exe
+          retention-days: 30
