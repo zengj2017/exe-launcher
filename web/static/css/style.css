@@ -1,4 +1,47 @@
-/* 密钥管理系统 - 样式表 */
+/* 密钥管理系统 - 现代暗色玻璃拟态主题 */
+
+:root {
+    /* 主色调 */
+    --primary: #8b5cf6;
+    --primary-light: #a78bfa;
+    --primary-dark: #7c3aed;
+    --primary-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+
+    /* 暗色背景 */
+    --bg-dark: #0f0f23;
+    --bg-darker: #0a0a15;
+    --bg-card: rgba(17, 17, 40, 0.8);
+    --bg-glass: rgba(255, 255, 255, 0.05);
+    --bg-hover: rgba(255, 255, 255, 0.08);
+
+    /* 文字颜色 */
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --text-muted: #64748b;
+
+    /* 状态颜色 */
+    --success: #10b981;
+    --success-light: #34d399;
+    --warning: #f59e0b;
+    --warning-light: #fbbf24;
+    --danger: #ef4444;
+    --danger-light: #f87171;
+    --info: #3b82f6;
+
+    /* 边框与阴影 */
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --border-subtle: rgba(255, 255, 255, 0.05);
+    --shadow-glass: 0 8px 32px rgba(0, 0, 0, 0.3);
+    --shadow-glow: 0 0 20px rgba(139, 92, 246, 0.3);
+    --shadow-strong: 0 20px 60px rgba(0, 0, 0, 0.5);
+
+    /* 圆角 */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --radius-xl: 20px;
+    --radius-2xl: 24px;
+}
 
 * {
     margin: 0;
@@ -8,185 +51,295 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    background: #f5f7fa;
-    color: #2c3e50;
+    background: var(--bg-dark);
+    background-image:
+        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.1) 0px, transparent 50%);
+    background-attachment: fixed;
+    color: var(--text-primary);
+    min-height: 100vh;
 }
 
-/* 导航栏 */
+/* ========== 导航栏 ========== */
 .navbar {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+    background: rgba(15, 15, 35, 0.95);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-glass);
     padding: 1rem 2rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 .nav-brand {
-    font-size: 1.25rem;
-    font-weight: bold;
+    font-size: 1.5rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.5px;
 }
 
 .nav-menu {
     display: flex;
-    gap: 1.5rem;
+    gap: 0.5rem;
 }
 
 .nav-menu a {
-    color: rgba(255,255,255,0.9);
+    color: var(--text-secondary);
     text-decoration: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    transition: all 0.3s;
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    font-weight: 500;
 }
 
-.nav-menu a:hover,
+.nav-menu a::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--primary-gradient);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+    border-radius: 2px;
+}
+
+.nav-menu a:hover {
+    color: var(--text-primary);
+    background: var(--bg-glass);
+}
+
+.nav-menu a:hover::after,
+.nav-menu a.active::after {
+    width: 60%;
+}
+
 .nav-menu a.active {
-    background: rgba(255,255,255,0.2);
-    color: white;
+    color: var(--primary-light);
+    background: rgba(139, 92, 246, 0.1);
 }
 
 .nav-user {
     display: flex;
     align-items: center;
     gap: 1rem;
+    color: var(--text-secondary);
 }
 
 .btn-logout {
-    background: rgba(255,255,255,0.2);
-    color: white;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    padding: 0.75rem 1.25rem;
+    border-radius: var(--radius-md);
     text-decoration: none;
-    transition: background 0.3s;
+    transition: all 0.3s;
+    border: 1px solid var(--border-glass);
+    font-weight: 500;
 }
 
 .btn-logout:hover {
-    background: rgba(255,255,255,0.3);
+    background: var(--bg-hover);
+    border-color: var(--primary);
+    transform: translateY(-2px);
 }
 
-/* 容器 */
+/* ========== 容器 ========== */
 .container {
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 2rem auto;
-    padding: 0 1rem;
+    padding: 0 1.5rem;
 }
 
-/* 登录页面 */
+/* ========== 登录页面 ========== */
 .login-container {
     min-height: 100vh;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--bg-dark);
+    background-image:
+        radial-gradient(at 20% 30%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
+        radial-gradient(at 80% 70%, rgba(168, 85, 247, 0.15) 0px, transparent 50%);
 }
 
 .login-box {
-    background: white;
-    border-radius: 8px;
-    padding: 2rem;
+    background: var(--bg-card);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-2xl);
+    padding: 3rem;
     width: 100%;
-    max-width: 400px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-width: 450px;
+    box-shadow: var(--shadow-strong);
+    animation: fadeInUp 0.6s ease-out;
 }
 
 .login-header {
     text-align: center;
-    margin-bottom: 2rem;
+    margin-bottom: 2.5rem;
 }
 
 .login-icon {
-    font-size: 3rem;
-    margin-bottom: 0.5rem;
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    display: inline-block;
+    animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
 }
 
 .login-header h2 {
-    color: #2c3e50;
+    font-size: 1.75rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 0.5rem;
 }
 
 .login-header p {
-    color: #95a5a6;
-    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
 }
 
 .login-footer {
     margin-top: 1.5rem;
     text-align: center;
-    font-size: 0.85rem;
-    color: #95a5a6;
+    font-size: 0.875rem;
+    color: var(--text-muted);
 }
 
-/* 表单 */
+/* ========== 表单 ========== */
 .form-group {
     margin-bottom: 1.5rem;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 0.5rem;
-    color: #2c3e50;
-    font-weight: 500;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.95rem;
 }
 
 .form-group input,
 .form-group textarea,
 .form-group select {
     width: 100%;
-    padding: 0.75rem;
-    border: 1px solid #e1e8ed;
-    border-radius: 4px;
+    padding: 0.875rem 1rem;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
     font-size: 1rem;
-    transition: border-color 0.3s;
+    color: var(--text-primary);
+    transition: all 0.3s;
 }
 
 .form-group input:focus,
 .form-group textarea:focus,
 .form-group select:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: var(--primary);
+    background: var(--bg-hover);
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.1);
+}
+
+.form-group input::placeholder {
+    color: var(--text-muted);
 }
 
 .form-group small {
     display: block;
-    margin-top: 0.25rem;
-    color: #95a5a6;
+    margin-top: 0.5rem;
+    color: var(--text-muted);
     font-size: 0.85rem;
 }
 
-/* 按钮 */
+/* ========== 按钮 ========== */
 .btn {
     display: inline-block;
-    padding: 0.75rem 1.5rem;
+    padding: 0.875rem 1.75rem;
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-md);
     font-size: 1rem;
+    font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    transition: all 0.3s;
-    background: #e1e8ed;
-    color: #2c3e50;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: var(--bg-glass);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass);
+    position: relative;
+    overflow: hidden;
 }
 
 .btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.btn:active {
+    transform: translateY(0);
 }
 
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--primary-gradient);
+    border: none;
     color: white;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 12px 30px rgba(139, 92, 246, 0.4);
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
 }
 
 .btn-success {
-    background: #2ecc71;
+    background: var(--success);
+    border: none;
     color: white;
 }
 
+.btn-success:hover {
+    background: var(--success-light);
+}
+
 .btn-danger {
-    background: #e74c3c;
+    background: var(--danger);
+    border: none;
     color: white;
+}
+
+.btn-danger:hover {
+    background: var(--danger-light);
 }
 
 .btn-block {
@@ -194,7 +347,7 @@ body {
 }
 
 .btn-sm {
-    padding: 0.5rem 1rem;
+    padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
 }
 
@@ -202,124 +355,323 @@ body {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 1.2rem;
-    padding: 0.25rem;
+    font-size: 1.25rem;
+    padding: 0.5rem;
     margin: 0 0.25rem;
-    transition: transform 0.2s;
+    transition: all 0.2s;
+    color: var(--text-secondary);
+    border-radius: var(--radius-sm);
 }
 
 .btn-icon:hover {
-    transform: scale(1.2);
+    transform: scale(1.15);
+    color: var(--primary-light);
+    background: var(--bg-glass);
 }
 
-/* 提示框 */
+/* ========== 提示框 ========== */
 .alert {
-    padding: 1rem;
-    border-radius: 4px;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-md);
     margin-bottom: 1rem;
+    border: 1px solid;
+    backdrop-filter: blur(10px);
+    animation: slideInDown 0.3s ease-out;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .alert-success {
-    background: #d4edda;
-    color: #155724;
-    border: 1px solid #c3e6cb;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-light);
+    border-color: var(--success);
 }
 
 .alert-error {
-    background: #f8d7da;
-    color: #721c24;
-    border: 1px solid #f5c6cb;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-light);
+    border-color: var(--danger);
 }
 
 .alert-warning {
-    background: #fff3cd;
-    color: #856404;
-    border: 1px solid #ffeeba;
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--warning-light);
+    border-color: var(--warning);
 }
 
-/* 仪表盘 */
+/* ========== Toast 通知系统 ========== */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    min-width: 320px;
+    max-width: 500px;
+    background: var(--bg-card);
+    backdrop-filter: blur(30px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    box-shadow: var(--shadow-strong);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    z-index: 9999;
+    animation: toastSlideIn 0.3s ease-out;
+}
+
+@keyframes toastSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.toast-exit {
+    animation: toastSlideOut 0.3s ease-out forwards;
+}
+
+@keyframes toastSlideOut {
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+.toast-icon {
+    font-size: 1.5rem;
+}
+
+.toast-content {
+    flex: 1;
+}
+
+.toast-message {
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+.toast-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0.25rem;
+    transition: color 0.2s;
+}
+
+.toast-close:hover {
+    color: var(--text-primary);
+}
+
+.toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: var(--primary-gradient);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    animation: toastProgress 4s linear;
+}
+
+@keyframes toastProgress {
+    from { width: 100%; }
+    to { width: 0; }
+}
+
+.toast-success { border-left: 4px solid var(--success); }
+.toast-error { border-left: 4px solid var(--danger); }
+.toast-warning { border-left: 4px solid var(--warning); }
+.toast-info { border-left: 4px solid var(--info); }
+
+/* ========== 仪表盘 ========== */
 .dashboard h1 {
+    font-size: 2rem;
+    font-weight: 700;
     margin-bottom: 2rem;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 1.5rem;
     margin-bottom: 2rem;
 }
 
 .stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    text-align: center;
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-xl);
+    padding: 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fadeInUp 0.6s ease-out backwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--primary-gradient);
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-glow);
+    border-color: rgba(139, 92, 246, 0.3);
 }
 
 .stat-icon {
-    font-size: 2.5rem;
-    margin-bottom: 0.5rem;
+    width: 64px;
+    height: 64px;
+    border-radius: var(--radius-lg);
+    background: var(--bg-glass);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    margin-bottom: 1.25rem;
 }
 
 .stat-value {
-    font-size: 2.5rem;
-    font-weight: bold;
-    color: #667eea;
+    font-size: 2.75rem;
+    font-weight: 800;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 0.5rem;
+    letter-spacing: -1px;
 }
 
 .stat-success .stat-value {
-    color: #2ecc71;
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-warning .stat-value {
-    color: #f39c12;
+    background: linear-gradient(135deg, var(--warning) 0%, var(--warning-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-danger .stat-value {
-    color: #e74c3c;
+    background: linear-gradient(135deg, var(--danger) 0%, var(--danger-light) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .stat-label {
-    color: #95a5a6;
-    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .quota-info {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    padding: 2rem;
+    border-radius: var(--radius-xl);
     margin-bottom: 2rem;
 }
 
+.quota-info h3 {
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+}
+
 .quota-bar {
-    height: 20px;
-    background: #e1e8ed;
-    border-radius: 10px;
+    height: 24px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
     overflow: hidden;
-    margin: 1rem 0;
+    margin: 1.25rem 0;
+    border: 1px solid var(--border-subtle);
 }
 
 .quota-progress {
     height: 100%;
-    background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-    transition: width 0.3s;
+    background: var(--primary-gradient);
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.quota-progress::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
 .recent-logs {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    padding: 2rem;
+    border-radius: var(--radius-xl);
 }
 
 .recent-logs h3 {
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
 }
 
-/* 页面头部 */
+/* ========== 页面头部 ========== */
 .page-header {
     display: flex;
     justify-content: space-between;
@@ -327,17 +679,29 @@ body {
     margin-bottom: 2rem;
 }
 
+.page-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: var(--primary-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
 .page-actions {
     display: flex;
     gap: 1rem;
 }
 
-/* 表格 */
+/* ========== 表格 ========== */
 .table-container {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    background: var(--bg-glass);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-xl);
     overflow: hidden;
+    box-shadow: var(--shadow-glass);
 }
 
 .table {
@@ -346,24 +710,36 @@ body {
 }
 
 .table thead {
-    background: #f8f9fa;
+    background: rgba(139, 92, 246, 0.1);
+    border-bottom: 1px solid var(--border-glass);
 }
 
 .table th {
-    padding: 1rem;
+    padding: 1.25rem;
     text-align: left;
     font-weight: 600;
-    color: #2c3e50;
-    border-bottom: 2px solid #e1e8ed;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
 }
 
 .table td {
-    padding: 1rem;
-    border-bottom: 1px solid #f1f1f1;
+    padding: 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+}
+
+.table tbody tr {
+    transition: all 0.2s;
 }
 
 .table tbody tr:hover {
-    background: #f8f9fa;
+    background: rgba(139, 92, 246, 0.05);
+}
+
+.table tbody tr:last-child td {
+    border-bottom: none;
 }
 
 .table .text-center {
@@ -374,26 +750,39 @@ body {
     white-space: nowrap;
 }
 
-/* 徽章 */
+.table code {
+    background: var(--bg-glass);
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-family: 'Courier New', monospace;
+    font-size: 0.875rem;
+    color: var(--primary-light);
+    border: 1px solid var(--border-glass);
+}
+
+/* ========== 徽章 ========== */
 .badge {
     display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    font-weight: 500;
+    padding: 0.375rem 0.875rem;
+    border-radius: 16px;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    border: 1px solid;
 }
 
 .badge-success {
-    background: #d4edda;
-    color: #155724;
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--success-light);
+    border-color: var(--success);
 }
 
 .badge-danger {
-    background: #f8d7da;
-    color: #721c24;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--danger-light);
+    border-color: var(--danger);
 }
 
-/* 分页 */
+/* ========== 分页 ========== */
 .pagination {
     display: flex;
     justify-content: center;
@@ -402,7 +791,15 @@ body {
     margin-top: 2rem;
 }
 
-/* 模态框 */
+.pagination .btn {
+    min-width: 100px;
+}
+
+.pagination span {
+    color: var(--text-secondary);
+}
+
+/* ========== 模态框 ========== */
 .modal {
     display: none;
     position: fixed;
@@ -410,7 +807,8 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0,0,0,0.5);
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
     z-index: 1000;
     align-items: center;
     justify-content: center;
@@ -421,17 +819,33 @@ body {
 }
 
 .modal-content {
-    background: white;
-    border-radius: 8px;
-    max-width: 500px;
+    background: var(--bg-card);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-2xl);
+    max-width: 550px;
     width: 90%;
     max-height: 90vh;
     overflow-y: auto;
+    box-shadow: var(--shadow-strong);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
 }
 
 .modal-header {
-    padding: 1.5rem;
-    border-bottom: 1px solid #e1e8ed;
+    padding: 2rem 2rem 1.5rem;
+    border-bottom: 1px solid var(--border-glass);
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -439,25 +853,38 @@ body {
 
 .modal-header h3 {
     margin: 0;
+    color: var(--text-primary);
+    font-size: 1.25rem;
 }
 
 .modal-close {
     cursor: pointer;
-    font-size: 1.5rem;
-    color: #95a5a6;
+    font-size: 1.75rem;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+    background: var(--bg-glass);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
 }
 
 .modal-close:hover {
-    color: #2c3e50;
+    color: var(--text-primary);
+    background: var(--bg-hover);
+    transform: rotate(90deg);
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 2rem;
 }
 
 .modal-footer {
-    padding: 1rem 1.5rem;
-    border-top: 1px solid #e1e8ed;
+    padding: 1.5rem 2rem 2rem;
+    border-top: 1px solid var(--border-glass);
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
@@ -469,25 +896,33 @@ body {
 
 .key-detail code {
     display: block;
-    background: #f8f9fa;
-    padding: 1rem;
-    border-radius: 4px;
+    background: var(--bg-glass);
+    padding: 1.25rem;
+    border-radius: var(--radius-md);
     word-break: break-all;
-    margin: 0.5rem 0;
+    margin: 0.75rem 0;
     font-family: 'Courier New', monospace;
+    border: 1px solid var(--border-glass);
+    color: var(--primary-light);
+    font-size: 0.95rem;
 }
 
-/* 响应式 */
+/* ========== 响应式 ========== */
 @media (max-width: 768px) {
     .navbar {
         flex-direction: column;
         gap: 1rem;
+        padding: 1rem;
     }
 
     .nav-menu {
         flex-direction: column;
         gap: 0.5rem;
         width: 100%;
+    }
+
+    .nav-menu a {
+        text-align: center;
     }
 
     .page-header {
@@ -503,4 +938,48 @@ body {
     .table-container {
         overflow-x: auto;
     }
+
+    .login-box {
+        padding: 2rem 1.5rem;
+    }
+
+    .toast {
+        right: 1rem;
+        left: 1rem;
+        min-width: auto;
+    }
+}
+
+/* ========== 滚动条美化 ========== */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--bg-glass);
+    border-radius: 5px;
+    border: 2px solid var(--bg-darker);
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--bg-hover);
+}
+
+/* ========== 选中文本 ========== */
+::selection {
+    background: rgba(139, 92, 246, 0.3);
+    color: var(--text-primary);
+}
+
+/* ========== 加载骨架屏 ========== */
+.skeleton {
+    background: linear-gradient(90deg, var(--bg-glass) 25%, rgba(255,255,255,0.1) 50%, var(--bg-glass) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: var(--radius-md);
 }
