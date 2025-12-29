@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}登录 - 密钥管理系统{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-box">
+        <div class="login-header">
+            <div class="login-icon">🔐</div>
+            <h2>密钥管理系统</h2>
+            <p>请登录您的账户</p>
+        </div>
+
+        <form method="POST" action="{{ url_for('login') }}" class="login-form">
+            <div class="form-group">
+                <label for="username">用户名</label>
+                <input type="text" id="username" name="username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">登 录</button>
+        </form>
+
+        <div class="login-footer">
+            <p>默认账户: admin / admin123</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

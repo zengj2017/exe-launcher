@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}仪表盘 - 密钥管理系统{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+    <h1>仪表盘</h1>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">{{ total_keys }}</div>
+            <div class="stat-label">总密钥数</div>
+        </div>
+
+        <div class="stat-card stat-success">
+            <div class="stat-icon">✓</div>
+            <div class="stat-value">{{ enabled_keys }}</div>
+            <div class="stat-label">有效密钥</div>
+        </div>
+
+        <div class="stat-card stat-warning">
+            <div class="stat-icon">⚠</div>
+            <div class="stat-value">{{ expiring_soon }}</div>
+            <div class="stat-label">即将过期</div>
+        </div>
+
+        <div class="stat-card stat-danger">
+            <div class="stat-icon">✕</div>
+            <div class="stat-value">{{ expired }}</div>
+            <div class="stat-label">已过期</div>
+        </div>
+    </div>
+
+    {% if current_user.role in ['dealer'] %}
+    <div class="quota-info">
+        <h3>我的配额</h3>
+        <div class="quota-bar">
+            <div class="quota-progress" style="width: {{ (current_user.quota_used / current_user.quota_total * 100) if current_user.quota_total > 0 else 0 }}%"></div>
+        </div>
+        <p>已使用 {{ current_user.quota_used }} / {{ current_user.quota_total }}</p>
+    </div>
+    {% endif %}
+
+    <div class="recent-logs">
+        <h3>最近操作记录</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>时间</th>
+                    <th>操作</th>
+                    <th>详情</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in recent_logs %}
+                <tr>
+                    <td>{{ log.created_at }}</td>
+                    <td>{{ log.action }}</td>
+                    <td>{{ log.details or '-' }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" class="text-center">暂无操作记录</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

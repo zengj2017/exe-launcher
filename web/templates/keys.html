@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}密钥管理 - 密钥管理系统{% endblock %}
+
+{% block content %}
+<div class="keys-page">
+    <div class="page-header">
+        <h1>密钥管理</h1>
+        <div class="page-actions">
+            <button class="btn btn-primary" onclick="showCreateKeyModal()">创建密钥</button>
+            {% if current_user.role == 'admin' %}
+            <button class="btn btn-success" onclick="syncToGit()">同步到Git</button>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>密钥(前8位)</th>
+                    <th>用户</th>
+                    <th>过期日期</th>
+                    <th>状态</th>
+                    <th>备注</th>
+                    <th>创建时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for key in keys %}
+                <tr id="key-row-{{ key.id }}">
+                    <td><code>{{ key.key_value[:8] }}...</code></td>
+                    <td>{{ key.user_name or '-' }}</td>
+                    <td>{{ key.expires or '永久' }}</td>
+                    <td>
+                        {% if key.enabled %}
+                        <span class="badge badge-success">启用</span>
+                        {% else %}
+                        <span class="badge badge-danger">禁用</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ key.note or '-' }}</td>
+                    <td>{{ key.created_at }}</td>
+                    <td class="actions">
+                        <button class="btn-icon" onclick="showKeyDetail({{ key.id }}, '{{ key.key_value }}')" title="查看">👁</button>
+                        <button class="btn-icon" onclick="showExtendModal({{ key.id }})" title="续期">⏱</button>
+                        <button class="btn-icon" onclick="toggleKey({{ key.id }})" title="切换状态">🔄</button>
+                        <button class="btn-icon btn-danger" onclick="deleteKey({{ key.id }})" title="删除">🗑</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center">暂无密钥</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+        <a href="?page={{ page - 1 }}" class="btn">上一页</a>
+        {% endif %}
+        <span>第 {{ page }} / {{ total_pages }} 页</span>
+        {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}" class="btn">下一页</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- 创建密钥模态框 -->
+<div id="createKeyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>创建新密钥</h3>
+            <span class="modal-close" onclick="closeModal('createKeyModal')">&times;</span>
+        </div>
+        <form id="createKeyForm">
+            <div class="form-group">
+                <label>用户名称</label>
+                <input type="text" name="user_name" required>
+            </div>
+            <div class="form-group">
+                <label>有效期（天）</label>
+                <input type="number" name="days" value="30" min="1">
+                <small>留空表示永久有效</small>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                <textarea name="note" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('createKeyModal')">取消</button>
+                <button type="submit" class="btn btn-primary">创建</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 续期模态框 -->
+<div id="extendKeyModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>延长有效期</h3>
+            <span class="modal-close" onclick="closeModal('extendKeyModal')">&times;</span>
+        </div>
+        <form id="extendKeyForm">
+            <input type="hidden" id="extend_key_id">
+            <div class="form-group">
+                <label>延长天数</label>
+                <input type="number" name="days" value="30" min="1" required>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal('extendKeyModal')">取消</button>
+                <button type="submit" class="btn btn-primary">确定</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 密钥详情模态框 -->
+<div id="keyDetailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>密钥详情</h3>
+            <span class="modal-close" onclick="closeModal('keyDetailModal')">&times;</span>
+        </div>
+        <div class="key-detail">
+            <p><strong>完整密钥:</strong></p>
+            <code id="fullKeyValue"></code>
+            <button class="btn btn-sm" onclick="copyKey()">复制</button>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn" onclick="closeModal('keyDetailModal')">关闭</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/keys.js') }}"></script>
+{% endblock %}
