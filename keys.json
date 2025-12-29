@@ -1,20 +1,13 @@
 {
     "version": 1,
-    "updated": "2025-12-29",
+    "updated": "2025-12-29 21:08:37",
     "keys": [
         {
-            "key": "fb78bfc364f01d0a7484783322ea7a71a9fe2a8ca08630f0ce5ec8b91e0f0c8b",
-            "user": "admin",
-            "expires": "",
-            "enabled": true,
-            "note": "管理员永久密钥"
-        },
-        {
-            "key": "e347ea641fa441f5b43417d42063b94a0b91c833fc852eefa73985ccb2dffda9",
-            "user": "test_user",
-            "expires": "2025-12-31",
-            "enabled": true,
-            "note": "测试密钥（机器码绑定测试）"
+            "key": "d887491be6c8c1750d73024ff64bffc81de9b439ba1cee4df433cd0710841740",
+            "user": "test1",
+            "expires": "2026-01-28",
+            "enabled": 1,
+            "note": "1"
         }
     ],
     "settings": {
